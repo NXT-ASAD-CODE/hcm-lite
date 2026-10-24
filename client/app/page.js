@@ -1,69 +1,69 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
 
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.js</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import LoadingState from '@/components/LoadingState';
+import { useAuth } from '@/features/auth/AuthContext';
+import { getSetupStatus } from '@/features/auth/api';
+import { errorMessage } from '@/lib/apiClient';
+import { ROLE_HOME } from '@/lib/roles';
+
+// The front door: sends each visitor to the right place.
+export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    if (loading) return undefined;
+
+    if (user) {
+      router.replace(user.mustChangePassword ? '/change-password' : ROLE_HOME[user.role]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    getSetupStatus()
+      .then((status) => {
+        if (!cancelled) router.replace(status.needsSetup ? '/setup' : '/login');
+      })
+      .catch((err) => {
+        if (!cancelled) setError(errorMessage(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user, router, attempt]);
+
+  if (error) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 2 }}>
+        <Box sx={{ maxWidth: 440 }}>
+          <Alert
+            severity="error"
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => {
+                  setError('');
+                  setAttempt((n) => n + 1);
+                }}
+              >
+                Retry
+              </Button>
+            }
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+            {error}
+          </Alert>
+        </Box>
+      </Box>
+    );
+  }
+
+  return <LoadingState fullScreen />;
 }
