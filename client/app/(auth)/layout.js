@@ -2,6 +2,7 @@
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import { Suspense } from 'react';
 
 export default function AuthLayout({ children }) {
   return (
@@ -40,7 +41,7 @@ export default function AuthLayout({ children }) {
             AI-assisted Human Capital Management
           </Typography>
         </Box>
-        {children}
+        <Suspense fallback={null}>{children}</Suspense>
       </Box>
     </Box>
   );
